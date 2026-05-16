@@ -107,6 +107,15 @@ function ensureSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_clips_job_id ON clips(job_id);
 
+    CREATE TABLE IF NOT EXISTS clip_renders (
+      clip_id         TEXT NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
+      variant         TEXT NOT NULL,
+      path            TEXT NOT NULL,
+      bytes           INTEGER,
+      duration_ms     INTEGER,
+      PRIMARY KEY (clip_id, variant)
+    );
+
     CREATE TABLE IF NOT EXISTS posts (
       clip_id         TEXT NOT NULL REFERENCES clips(id) ON DELETE CASCADE,
       platform        TEXT NOT NULL,
