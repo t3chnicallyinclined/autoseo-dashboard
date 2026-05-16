@@ -1,7 +1,26 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { episodes, shows } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useEpisodes, useShows } from "@/api/hooks"
+import { toast } from "sonner"
 
 export default function Library() {
+  const { data: episodes = [], isLoading: epsLoading, error: epsError } = useEpisodes()
+  const { data: shows = [], isLoading: showsLoading } = useShows()
+
+  if (epsError) toast.error("Failed to load episodes")
+
+  if (epsLoading || showsLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

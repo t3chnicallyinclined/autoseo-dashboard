@@ -2,7 +2,9 @@ import { Clock, Play, X } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { clips, episodes } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useClips, useEpisodes } from "@/api/hooks"
+import { toast } from "sonner"
 
 const platformColors: Record<string, string> = {
   youtube: "#ef4444",
@@ -20,6 +22,19 @@ const scheduled = [
 ]
 
 export default function Schedule() {
+  const { data: clips = [], isLoading: clipsLoading, error } = useClips()
+  const { data: episodes = [] } = useEpisodes()
+
+  if (error) toast.error("Failed to load schedule data")
+
+  if (clipsLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Card className="bg-card border-border card-top-border">

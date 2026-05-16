@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { clips, episodes } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useClips, useEpisodes } from "@/api/hooks"
+import { toast } from "sonner"
 
 const platformCopy: Record<string, { title: string; body: string; hashtags: string[] }> = {
   youtube: {
@@ -25,6 +27,23 @@ const platformCopy: Record<string, { title: string; body: string; hashtags: stri
 }
 
 export default function SocialCopy() {
+  const { data: clips = [], isLoading: clipsLoading, error } = useClips()
+  const { data: episodes = [] } = useEpisodes()
+
+  if (error) toast.error("Failed to load social copy data")
+
+  if (clipsLoading || clips.length === 0) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+      </div>
+    )
+  }
+
   const clip = clips[0]
   const episode = episodes.find(e => e.id === clip.episodeId)
 
