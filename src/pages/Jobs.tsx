@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { NewJobModal } from "@/components/NewJobModal"
 import { jobs, shows } from "@/data/sample"
 
 const STATUS_PILLS = ["all", "pending", "transcribing", "rendering", "done", "failed"] as const
@@ -23,6 +24,7 @@ export default function Jobs() {
   const [filter, setFilter] = useState<string>("all")
   const [search, setSearch] = useState("")
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [newJobOpen, setNewJobOpen] = useState(false)
 
   const filtered = jobs.filter(j => {
     if (filter !== "all" && j.status !== filter) return false
@@ -55,7 +57,7 @@ export default function Jobs() {
           ))}
         </div>
         <div className="flex-1" />
-        <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5">
+        <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5" onClick={() => setNewJobOpen(true)}>
           <Upload className="size-3" /> Ingest Media
         </Button>
         <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5">
@@ -176,6 +178,8 @@ export default function Jobs() {
           )}
         </CardContent>
       </Card>
+
+      <NewJobModal open={newJobOpen} onOpenChange={setNewJobOpen} />
     </div>
   )
 }
