@@ -6,7 +6,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
-import { costData } from "@/data/sample"
+import { costData as sampleCostData } from "@/data/sample"
+import { useWS } from "@/contexts/WebSocketContext"
 
 interface NavItem {
   label: string
@@ -68,6 +69,10 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
+  const { live, connectionStatus } = useWS()
+  const costData = live.cost
+    ? { ...sampleCostData, total: live.cost.total, dailyBurn: live.cost.dailyBurn }
+    : sampleCostData
   const budgetPct = (costData.total / costData.budget) * 100
   const costColor = budgetPct > 90 ? "text-red-400" : budgetPct > 75 ? "text-amber-400" : "text-emerald-400"
 
@@ -149,8 +154,10 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
         {/* System health */}
         <div className="flex items-center gap-2 px-1 group-data-[collapsible=icon]:justify-center">
           <div className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-emerald-500 status-pulse inline-block" />
-            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">System Healthy</span>
+            <span className={`size-2 rounded-full inline-block ${connectionStatus === "connected" ? "bg-emerald-500 status-pulse" : connectionStatus === "connecting" ? "bg-amber-500 animate-pulse" : "bg-red-500"}`} />
+            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+              {connectionStatus === "connected" ? "Live" : connectionStatus === "connecting" ? "Connecting..." : "Disconnected"}
+            </span>
           </div>
           <ChevronRight className="size-3 text-muted-foreground/40 ml-auto group-data-[collapsible=icon]:hidden" />
         </div>
