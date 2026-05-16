@@ -15,6 +15,10 @@ export function getDb(): Database.Database {
   return _db;
 }
 
+export function setDb(newDb: Database.Database): void {
+  _db = newDb;
+}
+
 function ensureSchema(db: Database.Database) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jobs (
