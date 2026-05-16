@@ -13,7 +13,7 @@ export const episodes = [
 
 export const clips = [
   {
-    id: "c1", episodeId: "ep1", rank: 1,
+    id: "c1", jobId: "job-001", episodeId: "ep1", rank: 1,
     hook: "This changes everything about AI regulation",
     duration: "0:58", llmScore: 94, vlmScore: 88,
     status: "posted",
@@ -22,7 +22,7 @@ export const clips = [
     views: 248000, ctr: 16.2, watchPct: 78,
   },
   {
-    id: "c2", episodeId: "ep1", rank: 2,
+    id: "c2", jobId: "job-001", episodeId: "ep1", rank: 2,
     hook: "I've never told anyone this before",
     duration: "1:12", llmScore: 89, vlmScore: 92,
     status: "posted",
@@ -31,7 +31,7 @@ export const clips = [
     views: 182000, ctr: 14.8, watchPct: 85,
   },
   {
-    id: "c3", episodeId: "ep1", rank: 3,
+    id: "c3", jobId: "job-001", episodeId: "ep1", rank: 3,
     hook: "The real reason I left the company",
     duration: "0:47", llmScore: 85, vlmScore: 79,
     status: "posted",
@@ -40,7 +40,7 @@ export const clips = [
     views: 94000, ctr: 11.3, watchPct: 72,
   },
   {
-    id: "c4", episodeId: "ep1", rank: 4,
+    id: "c4", jobId: "job-001", episodeId: "ep1", rank: 4,
     hook: "People don't understand what's coming next",
     duration: "1:33", llmScore: 82, vlmScore: 75,
     status: "approved",
@@ -49,7 +49,7 @@ export const clips = [
     views: 0, ctr: 0, watchPct: 0,
   },
   {
-    id: "c5", episodeId: "ep2", rank: 1,
+    id: "c5", jobId: "job-002", episodeId: "ep2", rank: 1,
     hook: "GPT-5 is already deployed internally",
     duration: "0:52", llmScore: 91, vlmScore: 86,
     status: "posted",
@@ -58,7 +58,7 @@ export const clips = [
     views: 156000, ctr: 13.5, watchPct: 82,
   },
   {
-    id: "c6", episodeId: "ep3", rank: 1,
+    id: "c6", jobId: "job-003", episodeId: "ep3", rank: 1,
     hook: "Backpropagation explained in 60 seconds",
     duration: "1:00", llmScore: 88, vlmScore: 83,
     status: "posted",
@@ -67,7 +67,7 @@ export const clips = [
     views: 72000, ctr: 8.9, watchPct: 91,
   },
   {
-    id: "c7", episodeId: "ep4", rank: 1,
+    id: "c7", jobId: "job-004", episodeId: "ep4", rank: 1,
     hook: "The Fed is about to make a historic mistake",
     duration: "1:18", llmScore: 87, vlmScore: 80,
     status: "generated",
@@ -76,7 +76,7 @@ export const clips = [
     views: 0, ctr: 0, watchPct: 0,
   },
   {
-    id: "c8", episodeId: "ep1", rank: 5,
+    id: "c8", jobId: "job-001", episodeId: "ep1", rank: 5,
     hook: "Why every startup is doing this wrong",
     duration: "0:44", llmScore: 78, vlmScore: 71,
     status: "vetoed",
