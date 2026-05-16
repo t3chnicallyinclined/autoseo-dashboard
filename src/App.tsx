@@ -2,7 +2,9 @@ import { useState } from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/AppSidebar"
 import { TopBar } from "@/components/layout/TopBar"
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { CommandPalette } from "@/components/CommandPalette"
+import { useIsMobile } from "@/hooks/use-mobile"
 import Dashboard from "@/pages/Dashboard"
 import Pipeline from "@/pages/Pipeline"
 import Jobs from "@/pages/Jobs"
@@ -48,20 +50,26 @@ function PageContent({ page, onNavigate }: { page: Page; onNavigate: (p: Page) =
 export function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard")
   const [commandOpen, setCommandOpen] = useState(false)
+  const isMobile = useIsMobile()
 
   const navigate = (page: Page) => setCurrentPage(page)
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen={!isMobile}>
       <div className="flex min-h-svh w-full bg-background">
-        <AppSidebar currentPage={currentPage} onNavigate={p => navigate(p as Page)} />
+        {!isMobile && (
+          <AppSidebar currentPage={currentPage} onNavigate={p => navigate(p as Page)} />
+        )}
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
           <TopBar currentPage={currentPage} onOpenSearch={() => setCommandOpen(true)} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className={`flex-1 overflow-y-auto p-4 md:p-6 ${isMobile ? "pb-20" : ""}`}>
             <PageContent page={currentPage} onNavigate={navigate} />
           </main>
         </SidebarInset>
       </div>
+      {isMobile && (
+        <MobileBottomNav currentPage={currentPage} onNavigate={p => navigate(p as Page)} />
+      )}
       <CommandPalette
         open={commandOpen}
         onOpenChange={setCommandOpen}
