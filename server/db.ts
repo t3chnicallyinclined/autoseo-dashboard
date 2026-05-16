@@ -1,6 +1,51 @@
 import Database from "better-sqlite3";
 import path from "path";
 
+export interface TrendRow {
+  source: string;
+  topic_id: string;
+  label: string | null;
+  score: number | null;
+  fetched_at: number;
+}
+
+export interface TrendWithMatchCount extends TrendRow {
+  match_count: number;
+}
+
+export interface GdeltTrend {
+  topic: string;
+  score: number;
+  sources: number;
+  tone: number;
+  matched: number;
+}
+
+export interface RedditTrend {
+  title: string;
+  subreddit: string;
+  score: number;
+  comments: number;
+}
+
+export interface GoogleTrend {
+  term: string;
+  volume: number;
+  related: string[];
+}
+
+export interface TrendingTopics {
+  gdelt: GdeltTrend[];
+  reddit: RedditTrend[];
+  google: GoogleTrend[];
+}
+
+export interface MatchedTrend {
+  topic: string;
+  source: string;
+  match_count: number;
+}
+
 const DB_PATH = process.env.CLIPPER_DB ?? path.resolve("clipper.db");
 
 let _db: Database.Database | null = null;
@@ -25,6 +70,12 @@ export function createDb(dbPath?: string): Database.Database {
   db.pragma("foreign_keys = ON");
   ensureSchema(db);
   return db;
+}
+
+export function openDb(dbPath: string, opts?: { readonly?: boolean }): Database.Database {
+  _db = new Database(dbPath, { readonly: opts?.readonly ?? true });
+  _db.pragma("journal_mode = WAL");
+  return _db;
 }
 
 function ensureSchema(db: Database.Database) {
@@ -165,4 +216,42 @@ export function closeDb() {
     _db.close();
     _db = null;
   }
+}
+
+export function getTrends(source?: string): TrendWithMatchCount[] {
+  const db = getDb();
+  const whereClause = source ? "WHERE t.source = ?" : "";
+  const params = source ? [source] : [];
+  const sql = `
+    SELECT t.source, t.topic_id, t.label, t.score, t.fetched_at, COUNT(c.id) AS match_count
+    FROM trends t LEFT JOIN clips c ON c.trend_match = t.label
+    ${whereClause}
+    GROUP BY t.source, t.topic_id, t.fetched_at
+    ORDER BY t.source, t.score DESC
+  `;
+  return db.prepare(sql).all(...params) as TrendWithMatchCount[];
+}
+
+export function getLatestTrendsBySource(source: string): TrendWithMatchCount[] {
+  const db = getDb();
+  const sql = `
+    WITH latest AS (SELECT MAX(fetched_at) AS max_fetched FROM trends WHERE source = ?)
+    SELECT t.source, t.topic_id, t.label, t.score, t.fetched_at, COUNT(c.id) AS match_count
+    FROM trends t LEFT JOIN clips c ON c.trend_match = t.label
+    CROSS JOIN latest l
+    WHERE t.source = ? AND t.fetched_at = l.max_fetched
+    GROUP BY t.source, t.topic_id, t.fetched_at
+    ORDER BY t.score DESC
+  `;
+  return db.prepare(sql).all(source, source) as TrendWithMatchCount[];
+}
+
+export function getMatchedTrends(): MatchedTrend[] {
+  const db = getDb();
+  const sql = `
+    SELECT t.label AS topic, t.source, COUNT(DISTINCT c.id) AS match_count
+    FROM trends t INNER JOIN clips c ON c.trend_match = t.label
+    GROUP BY t.label, t.source ORDER BY match_count DESC
+  `;
+  return db.prepare(sql).all() as MatchedTrend[];
 }
