@@ -1,12 +1,12 @@
+import { useState } from "react"
 import { CircleCheck as CheckCircle2, Loader as Loader2, Clock, CircleAlert as AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useJobs, useShows, usePipelineStages } from "@/api/hooks"
-import { toast } from "sonner"
+import { NewJobDialog } from "@/components/NewJobDialog"
+import { jobs, shows, pipelineStages } from "@/data/sample"
 
 const stageDescriptions: Record<string, { stats: string; config: string }> = {
   ingest: { stats: "Polled 12 emails, found 1 new attachment", config: "Gmail filter: label:podcast-ingest" },
@@ -35,20 +35,7 @@ const jobStatusColors: Record<string, string> = {
 }
 
 export default function Pipeline() {
-  const { data: jobs = [], isLoading: jobsLoading, error } = useJobs()
-  const { data: shows = [] } = useShows()
-  const { data: pipelineStages = [], isLoading: stagesLoading } = usePipelineStages()
-
-  if (error) toast.error("Failed to load pipeline data")
-
-  if (jobsLoading || stagesLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    )
-  }
+  const [newJobOpen, setNewJobOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -120,7 +107,7 @@ export default function Pipeline() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold">Active & Recent Jobs</CardTitle>
-            <Button size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90">
+            <Button size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90" onClick={() => setNewJobOpen(true)}>
               + New Job
             </Button>
           </div>
@@ -194,6 +181,8 @@ export default function Pipeline() {
           </Table>
         </CardContent>
       </Card>
+
+      <NewJobDialog open={newJobOpen} onOpenChange={setNewJobOpen} />
     </div>
   )
 }

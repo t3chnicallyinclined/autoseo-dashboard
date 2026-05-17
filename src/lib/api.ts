@@ -1,18 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "/api"
+const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 export interface CreateJobResponse {
-  id: string
-  status: string
+  job_id: string
+  status: "pending"
 }
 
-export async function createJobWithFile(
+export async function uploadJob(
   file: File,
-  showId: string,
+  showSlug?: string,
   onProgress?: (pct: number) => void,
 ): Promise<CreateJobResponse> {
   const formData = new FormData()
   formData.append("file", file)
-  formData.append("show_id", showId)
+  if (showSlug) formData.append("show_slug", showSlug)
 
   const xhr = new XMLHttpRequest()
   return new Promise((resolve, reject) => {
@@ -28,104 +28,24 @@ export async function createJobWithFile(
         reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
       }
     })
-    xhr.addEventListener("error", () => reject(new Error("Network error")))
-    xhr.open("POST", `${API_BASE}/jobs`)
+    xhr.addEventListener("error", () => reject(new Error("Upload failed")))
+    xhr.addEventListener("abort", () => reject(new Error("Upload aborted")))
+    xhr.open("POST", `${API_BASE}/api/jobs/upload`)
     xhr.send(formData)
   })
 }
 
-export async function createJobWithDriveUrl(
+export async function ingestDriveUrl(
   driveUrl: string,
-  showId: string,
+  showSlug?: string,
 ): Promise<CreateJobResponse> {
-  const res = await fetch(`${API_BASE}/jobs`, {
+  const res = await fetch(`${API_BASE}/api/jobs/ingest`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ drive_url: driveUrl, show_id: showId }),
+    body: JSON.stringify({ drive_url: driveUrl, show_slug: showSlug }),
   })
   if (!res.ok) {
-    throw new Error(`Request failed: ${res.status} ${res.statusText}`)
+    throw new Error(`Ingest failed: ${res.status} ${res.statusText}`)
   }
   return res.json()
 }
-
-// ── Analytics API ──────────────────────────────────────────────────────
-
-const ANALYTICS_BASE = "/api/analytics";
-
-export type DateRange = "7d" | "30d" | "90d" | { from: string; to: string };
-
-function rangeParams(range: DateRange): string {
-  if (typeof range === "string") return `range=${range}`;
-  return `from=${range.from}&to=${range.to}`;
-}
-
-async function getAnalytics<T>(path: string, range: DateRange = "7d"): Promise<T> {
-  const sep = path.includes("?") ? "&" : "?";
-  const res = await fetch(`${ANALYTICS_BASE}${path}${sep}${rangeParams(range)}`);
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-export interface OverviewData {
-  total_views: number;
-  avg_ctr: number;
-  avg_watch_pct: number;
-  clip_count: number;
-}
-
-export interface ViewsRow {
-  date: string;
-  youtube: number;
-  bluesky: number;
-  linkedin: number;
-  threads: number;
-}
-
-export interface CtrRow {
-  platform: string;
-  ctr: number;
-}
-
-export interface WatchBucket {
-  bucket: string;
-  count: number;
-}
-
-export interface ScatterPoint {
-  clip_id: string;
-  hook: string;
-  score: number;
-  ctr: number;
-  views: number;
-}
-
-export interface TopClip {
-  rank: number;
-  hook: string;
-  episode: string;
-  platform: string;
-  views: number;
-  ctr: number;
-  watchPct: number;
-  score: number;
-}
-
-export interface ShowStats {
-  show: string;
-  total_views: number;
-  avg_ctr: number;
-  avg_watch_pct: number;
-  clip_count: number;
-}
-
-export const analyticsApi = {
-  overview: (range?: DateRange) => getAnalytics<OverviewData>("/overview", range),
-  views: (range?: DateRange) => getAnalytics<ViewsRow[]>("/views", range),
-  ctr: (range?: DateRange) => getAnalytics<CtrRow[]>("/ctr", range),
-  watchDistribution: (range?: DateRange) => getAnalytics<WatchBucket[]>("/watch-distribution", range),
-  scoreVsPerformance: (range?: DateRange) => getAnalytics<ScatterPoint[]>("/score-vs-performance", range),
-  topClips: (range?: DateRange, limit?: number) =>
-    getAnalytics<TopClip[]>(`/top-clips${limit ? `?limit=${limit}` : ""}`, range),
-  byShow: (range?: DateRange) => getAnalytics<ShowStats[]>("/by-show", range),
-};

@@ -5,10 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useJobs, useShows } from "@/api/hooks"
-import { toast } from "sonner"
+import { NewJobDialog } from "@/components/NewJobDialog"
+import { jobs, shows } from "@/data/sample"
 
 const STATUS_PILLS = ["all", "pending", "transcribing", "rendering", "done", "failed"] as const
 
@@ -22,22 +21,10 @@ const statusColors: Record<string, string> = {
 }
 
 export default function Jobs() {
-  const { data: jobs = [], isLoading: jobsLoading, error } = useJobs()
-  const { data: shows = [] } = useShows()
   const [filter, setFilter] = useState<string>("all")
   const [search, setSearch] = useState("")
   const [expanded, setExpanded] = useState<string | null>(null)
-
-  if (error) toast.error("Failed to load jobs")
-
-  if (jobsLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-full max-w-xs" />
-        <Skeleton className="h-96 rounded-xl" />
-      </div>
-    )
-  }
+  const [newJobOpen, setNewJobOpen] = useState(false)
 
   const filtered = jobs.filter(j => {
     if (filter !== "all" && j.status !== filter) return false
@@ -70,7 +57,7 @@ export default function Jobs() {
           ))}
         </div>
         <div className="flex-1" />
-        <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5">
+        <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5" onClick={() => setNewJobOpen(true)}>
           <Upload className="size-3" /> Ingest Media
         </Button>
         <Button variant="outline" size="sm" className="h-8 text-xs border-border gap-1.5">
@@ -191,6 +178,8 @@ export default function Jobs() {
           )}
         </CardContent>
       </Card>
+
+      <NewJobDialog open={newJobOpen} onOpenChange={setNewJobOpen} />
     </div>
   )
 }
