@@ -7,6 +7,8 @@ import { CommandPalette } from "@/components/CommandPalette"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { WebSocketProvider } from "@/contexts/WebSocketContext"
 import { Toaster } from "@/components/ui/sonner"
+import SetupWizard from "@/pages/SetupWizard"
+import { isSetupNeeded } from "@/hooks/use-config"
 import Dashboard from "@/pages/Dashboard"
 import Pipeline from "@/pages/Pipeline"
 import Jobs from "@/pages/Jobs"
@@ -53,8 +55,18 @@ export function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard")
   const [commandOpen, setCommandOpen] = useState(false)
   const isMobile = useIsMobile()
+  const [showWizard, setShowWizard] = useState(() => isSetupNeeded())
 
   const navigate = (page: Page) => setCurrentPage(page)
+
+  if (showWizard) {
+    return (
+      <SetupWizard onComplete={() => {
+        setShowWizard(false)
+        setCurrentPage("pipeline")
+      }} />
+    )
+  }
 
   return (
     <WebSocketProvider>
