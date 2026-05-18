@@ -3,6 +3,7 @@ import cors from "cors";
 import { jobsRouter } from "./jobs.js";
 import { clipsRouter } from "./clips.js";
 import { analyticsRouter } from "./analytics.js";
+import { trendsRouter } from "./routes/trends.js";
 import { getDb, closeDb } from "./db.js";
 
 export function createApp() {
@@ -13,6 +14,7 @@ export function createApp() {
   app.use("/api/jobs", jobsRouter);
   app.use("/api/clips", clipsRouter);
   app.use("/api/analytics", analyticsRouter(db));
+  app.use("/api/trends", trendsRouter);
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
