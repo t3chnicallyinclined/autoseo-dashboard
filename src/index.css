@@ -154,3 +154,8 @@ html {
 .status-pulse {
   animation: status-pulse 2s ease-in-out infinite;
 }
+
+/* Mobile safe area for bottom nav */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
