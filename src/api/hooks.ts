@@ -1,140 +1,103 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { apiFetch } from "./client"
+import { useQuery } from "@tanstack/react-query"
+import { fetchers } from "./client"
 import type {
-  Show, Episode, Clip, Job, Platform, TrendingTopics,
-  Agent, CostData, AnalyticsData, PipelineStage,
+  Show,
+  Episode,
+  Clip,
+  Job,
+  Platform,
+  TrendingTopics,
+  Agent,
+  CostData,
+  AnalyticsData,
+  PipelineStage,
 } from "./types"
 
-// --- Query hooks ---
-
 export function useShows() {
-  return useQuery<Show[]>({
+  return useQuery({
     queryKey: ["shows"],
-    queryFn: () => apiFetch("/api/shows"),
+    queryFn: fetchers.getShows as () => Promise<Show[]>,
   })
 }
 
 export function useEpisodes() {
-  return useQuery<Episode[]>({
+  return useQuery({
     queryKey: ["episodes"],
-    queryFn: () => apiFetch("/api/episodes"),
+    queryFn: fetchers.getEpisodes as () => Promise<Episode[]>,
   })
 }
 
 export function useClips() {
-  return useQuery<Clip[]>({
+  return useQuery({
     queryKey: ["clips"],
-    queryFn: () => apiFetch("/api/clips"),
+    queryFn: fetchers.getClips as () => Promise<Clip[]>,
   })
 }
 
 export function useClip(id: string) {
-  return useQuery<Clip>({
+  return useQuery({
     queryKey: ["clips", id],
-    queryFn: () => apiFetch(`/api/clips/${id}`),
+    queryFn: () => fetchers.getClip(id) as Promise<Clip>,
     enabled: !!id,
   })
 }
 
 export function useJobs() {
-  return useQuery<Job[]>({
+  return useQuery({
     queryKey: ["jobs"],
-    queryFn: () => apiFetch("/api/jobs"),
+    queryFn: fetchers.getJobs as () => Promise<Job[]>,
+  })
+}
+
+export function useJob(id: string) {
+  return useQuery({
+    queryKey: ["jobs", id],
+    queryFn: () => fetchers.getJob(id) as Promise<Job>,
+    enabled: !!id,
   })
 }
 
 export function usePlatforms() {
-  return useQuery<Platform[]>({
+  return useQuery({
     queryKey: ["platforms"],
-    queryFn: () => apiFetch("/api/platforms"),
+    queryFn: fetchers.getPlatforms as () => Promise<Platform[]>,
   })
 }
 
 export function useTrends() {
-  return useQuery<TrendingTopics>({
+  return useQuery({
     queryKey: ["trends"],
-    queryFn: () => apiFetch("/api/trends"),
+    queryFn: fetchers.getTrends as () => Promise<TrendingTopics>,
   })
 }
 
 export function useAgents() {
-  return useQuery<Agent[]>({
+  return useQuery({
     queryKey: ["agents"],
-    queryFn: () => apiFetch("/api/agents"),
+    queryFn: fetchers.getAgents as () => Promise<Agent[]>,
+    refetchInterval: 5000,
   })
 }
 
 export function useCostData() {
-  return useQuery<CostData>({
-    queryKey: ["costs"],
-    queryFn: () => apiFetch("/api/costs"),
+  return useQuery({
+    queryKey: ["cost"],
+    queryFn: fetchers.getCostData as () => Promise<CostData>,
+    refetchInterval: 30000,
   })
 }
 
 export function useAnalytics() {
-  return useQuery<AnalyticsData>({
+  return useQuery({
     queryKey: ["analytics"],
-    queryFn: () => apiFetch("/api/analytics"),
+    queryFn: fetchers.getAnalytics as () => Promise<AnalyticsData>,
   })
 }
 
-export function usePipelineStages() {
-  return useQuery<PipelineStage[]>({
-    queryKey: ["pipeline-stages"],
-    queryFn: () => apiFetch("/api/pipeline/stages"),
-  })
-}
-
-// --- Mutation hooks ---
-
-export function useApproveClip() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (clipId: string) =>
-      apiFetch(`/api/clips/${clipId}/approve`, { method: "POST" }),
-    onMutate: async (clipId) => {
-      await qc.cancelQueries({ queryKey: ["clips"] })
-      const prev = qc.getQueryData<Clip[]>(["clips"])
-      qc.setQueryData<Clip[]>(["clips"], (old) =>
-        old?.map((c) => (c.id === clipId ? { ...c, status: "approved" } : c))
-      )
-      return { prev }
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["clips"], ctx.prev)
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["clips"] }),
-  })
-}
-
-export function useVetoClip() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (clipId: string) =>
-      apiFetch(`/api/clips/${clipId}/veto`, { method: "POST" }),
-    onMutate: async (clipId) => {
-      await qc.cancelQueries({ queryKey: ["clips"] })
-      const prev = qc.getQueryData<Clip[]>(["clips"])
-      qc.setQueryData<Clip[]>(["clips"], (old) =>
-        old?.map((c) => (c.id === clipId ? { ...c, status: "vetoed" } : c))
-      )
-      return { prev }
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.prev) qc.setQueryData(["clips"], ctx.prev)
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["clips"] }),
-  })
-}
-
-export function usePostClip() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ clipId, platform }: { clipId: string; platform: string }) =>
-      apiFetch(`/api/clips/${clipId}/post`, {
-        method: "POST",
-        body: JSON.stringify({ platform }),
-      }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["clips"] }),
+export function usePipelineStatus() {
+  return useQuery({
+    queryKey: ["pipeline-status"],
+    queryFn: fetchers.getPipelineStatus as () => Promise<PipelineStage[]>,
+    refetchInterval: 5000,
   })
 }
