@@ -1,14 +1,14 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line,
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useClips } from "@/api/hooks"
-import { toast } from "sonner"
+import { QueryBoundary } from "@/components/QueryBoundary"
 
 const scoreDistData = [
   { range: "0-10", count: 0 },
@@ -50,141 +50,145 @@ const vlmRerank = [
   { id: "c3", hook: "The real reason I left the company", llmRank: 6, finalRank: 5, delta: +1 },
 ]
 
-export default function Ranker() {
-  const { data: clips = [], isLoading, error } = useClips()
-
-  if (error) toast.error("Failed to load ranker data")
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Skeleton className="h-64 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
-        </div>
-      </div>
-    )
-  }
-
+function RankerSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Score distribution */}
-        <Card className="bg-card border-border card-top-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Score Distribution</CardTitle>
-            <p className="text-xs text-muted-foreground">All clips across all episodes (68 total)</p>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-48 w-full">
-              <BarChart data={scoreDistData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="range" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "11px" }} />
-                <Bar dataKey="count" fill="#3b82f6" radius={3} />
-              </BarChart>
-            </ChartContainer>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="h-4 w-px bg-red-500/70" />
-              <span className="text-xs text-muted-foreground">Top-K cutoff (≥ 75)</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Feature importance */}
-        <Card className="bg-card border-border card-top-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Feature Importance</CardTitle>
-            <p className="text-xs text-muted-foreground">Correlation with high-performing clips</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {featureImportance.map(f => (
-              <div key={f.feature}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs text-foreground">{f.feature}</span>
-                  <span className="text-xs font-mono" style={{ color: f.color }}>{(f.importance * 100).toFixed(0)}%</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all" style={{ width: `${f.importance * 100}%`, background: f.color }} />
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* VLM Re-rank Impact */}
-        <Card className="bg-card border-border card-top-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">VLM Re-rank Impact</CardTitle>
-            <p className="text-xs text-muted-foreground">Before → after VLM score blending</p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="grid grid-cols-4 text-xs text-muted-foreground pb-1 border-b border-border">
-                <span>LLM #</span>
-                <span className="col-span-2">Hook</span>
-                <span>Final #</span>
-              </div>
-              {vlmRerank.map(item => (
-                <div key={item.id} className="grid grid-cols-4 items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
-                  <span className="text-sm font-bold font-mono text-muted-foreground">#{item.llmRank}</span>
-                  <span className="col-span-2 text-xs text-foreground truncate">{item.hook}</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-bold font-mono text-foreground">#{item.finalRank}</span>
-                    {item.delta > 0 && <TrendingUp className="size-3 text-emerald-400" />}
-                    {item.delta < 0 && <TrendingDown className="size-3 text-red-400" />}
-                    {item.delta === 0 && <Minus className="size-3 text-muted-foreground" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Model accuracy over time */}
-        <Card className="bg-card border-border card-top-border">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold">Ranker Accuracy</CardTitle>
-              <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-0">↑ Improving</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Score vs actual CTR correlation per episode</p>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{}} className="h-48 w-full">
-              <LineChart data={accuracyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="ep" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0.6, 1]} tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={v => `${(v * 100).toFixed(0)}%`} />
-                <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v) => [`${(Number(v) * 100).toFixed(1)}%`, "Accuracy"]} />
-                <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" dot={{ fill: "#3b82f6", r: 3 }} strokeWidth={2} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
       </div>
+    </div>
+  )
+}
 
-      {/* Ranker reasoning explorer */}
-      <Card className="bg-card border-border card-top-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Ranker Reasoning Explorer</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {clips.slice(0, 4).map(clip => (
-            <details key={clip.id} className="group rounded-xl bg-accent/20 border border-border overflow-hidden">
-              <summary className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/30 transition-colors">
-                <Badge className={`text-xs border shrink-0 ${clip.rank === 1 ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" : "bg-muted/50 text-muted-foreground border-border"}`}>#{clip.rank}</Badge>
-                <span className="text-sm font-medium text-foreground flex-1 truncate">{clip.hook}</span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-mono text-primary">LLM: {clip.llmScore}</span>
-                  <span className="text-xs font-mono text-purple-400">VLM: {clip.vlmScore}</span>
+export default function Ranker() {
+  const clipsQuery = useClips()
+
+  return (
+    <QueryBoundary query={clipsQuery} skeleton={<RankerSkeleton />}>
+      {(clips) => (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Score distribution */}
+            <Card className="bg-card border-border card-top-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Score Distribution</CardTitle>
+                <p className="text-xs text-muted-foreground">All clips across all episodes (68 total)</p>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={{}} className="h-48 w-full">
+                  <BarChart data={scoreDistData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="range" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "11px" }} />
+                    <Bar dataKey="count" fill="#3b82f6" radius={3} />
+                  </BarChart>
+                </ChartContainer>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="h-4 w-px bg-red-500/70" />
+                  <span className="text-xs text-muted-foreground">Top-K cutoff (≥ 75)</span>
                 </div>
-              </summary>
-              <div className="px-3 pb-3">
-                <pre className="text-xs font-mono text-muted-foreground bg-background/50 rounded-lg p-3 overflow-x-auto border border-border/50">
+              </CardContent>
+            </Card>
+
+            {/* Feature importance */}
+            <Card className="bg-card border-border card-top-border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Feature Importance</CardTitle>
+                <p className="text-xs text-muted-foreground">Correlation with high-performing clips</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {featureImportance.map(f => (
+                  <div key={f.feature}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-xs text-foreground">{f.feature}</span>
+                      <span className="text-xs font-mono" style={{ color: f.color }}>{(f.importance * 100).toFixed(0)}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${f.importance * 100}%`, background: f.color }} />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* VLM Re-rank Impact */}
+            <Card className="bg-card border-border card-top-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">VLM Re-rank Impact</CardTitle>
+                <p className="text-xs text-muted-foreground">Before → after VLM score blending</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-4 text-xs text-muted-foreground pb-1 border-b border-border">
+                    <span>LLM #</span>
+                    <span className="col-span-2">Hook</span>
+                    <span>Final #</span>
+                  </div>
+                  {vlmRerank.map(item => (
+                    <div key={item.id} className="grid grid-cols-4 items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
+                      <span className="text-sm font-bold font-mono text-muted-foreground">#{item.llmRank}</span>
+                      <span className="col-span-2 text-xs text-foreground truncate">{item.hook}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold font-mono text-foreground">#{item.finalRank}</span>
+                        {item.delta > 0 && <TrendingUp className="size-3 text-emerald-400" />}
+                        {item.delta < 0 && <TrendingDown className="size-3 text-red-400" />}
+                        {item.delta === 0 && <Minus className="size-3 text-muted-foreground" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Model accuracy over time */}
+            <Card className="bg-card border-border card-top-border">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">Ranker Accuracy</CardTitle>
+                  <Badge className="text-xs bg-emerald-500/20 text-emerald-400 border-0">↑ Improving</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">Score vs actual CTR correlation per episode</p>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={{}} className="h-48 w-full">
+                  <LineChart data={accuracyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="ep" tick={{ fontSize: 9, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0.6, 1]} tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={v => `${(v * 100).toFixed(0)}%`} />
+                    <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid #1e293b", borderRadius: "8px", fontSize: "11px" }} formatter={(v) => [`${(Number(v) * 100).toFixed(1)}%`, "Accuracy"]} />
+                    <Line type="monotone" dataKey="accuracy" stroke="#3b82f6" dot={{ fill: "#3b82f6", r: 3 }} strokeWidth={2} />
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Ranker reasoning explorer */}
+          <Card className="bg-card border-border card-top-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Ranker Reasoning Explorer</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {clips.slice(0, 4).map(clip => (
+                <details key={clip.id} className="group rounded-xl bg-accent/20 border border-border overflow-hidden">
+                  <summary className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/30 transition-colors">
+                    <Badge className={`text-xs border shrink-0 ${clip.rank === 1 ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" : "bg-muted/50 text-muted-foreground border-border"}`}>#{clip.rank}</Badge>
+                    <span className="text-sm font-medium text-foreground flex-1 truncate">{clip.hook}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-mono text-primary">LLM: {clip.llmScore}</span>
+                      <span className="text-xs font-mono text-purple-400">VLM: {clip.vlmScore}</span>
+                    </div>
+                  </summary>
+                  <div className="px-3 pb-3">
+                    <pre className="text-xs font-mono text-muted-foreground bg-background/50 rounded-lg p-3 overflow-x-auto border border-border/50">
 {JSON.stringify({
   score: clip.llmScore,
   categories: { linguistic_markers: 28, emotional_intensity: 24, controversy: 22, clarity: 20 },
@@ -193,12 +197,14 @@ export default function Ranker() {
   refined_start: "00:14:22",
   refined_end: `00:${14 + Math.ceil(parseFloat(clip.duration) || 1)}:${(10 + clip.rank * 3).toString().padStart(2,'0')}`,
 }, null, 2)}
-                </pre>
-              </div>
-            </details>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+                    </pre>
+                  </div>
+                </details>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </QueryBoundary>
   )
 }

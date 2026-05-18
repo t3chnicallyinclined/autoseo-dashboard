@@ -69,7 +69,10 @@ interface AppSidebarProps {
 
 export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
   const { data: costData } = useCostData()
-  const budgetPct = costData ? (costData.total / costData.budget) * 100 : 0
+  const total = costData?.total ?? 0
+  const budget = costData?.budget ?? 50
+  const dailyBurn = costData?.dailyBurn ?? 0
+  const budgetPct = budget > 0 ? (total / budget) * 100 : 0
   const costColor = budgetPct > 90 ? "text-red-400" : budgetPct > 75 ? "text-amber-400" : "text-emerald-400"
 
   return (
@@ -128,7 +131,7 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
             <DollarSign className="size-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">This month</span>
             <span className={`text-xs font-mono font-bold ml-auto ${costColor}`}>
-              ${costData?.total.toFixed(2) ?? "—"}
+              ${total.toFixed(2)}
             </span>
           </div>
           <div className="h-1 bg-muted rounded-full overflow-hidden">
@@ -138,8 +141,8 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-muted-foreground/60">${costData?.dailyBurn.toFixed(2) ?? "—"}/day</span>
-            <span className="text-xs text-muted-foreground/60">${costData?.budget ?? "—"} budget</span>
+            <span className="text-xs text-muted-foreground/60">${dailyBurn.toFixed(2)}/day</span>
+            <span className="text-xs text-muted-foreground/60">${budget} budget</span>
           </div>
         </div>
         {/* Icon mode cost */}
