@@ -12,6 +12,7 @@ import {
 import {
   clips, platforms, trendingTopics, agents, analyticsData, jobs, pipelineStages, costData,
 } from "@/data/sample"
+import { ClipThumbnail } from "@/components/ClipThumbnail"
 
 function StatCard({ title, value, delta, deltaLabel, icon: Icon, color, sparkData }: {
   title: string
@@ -259,7 +260,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                     className="shrink-0 w-36 cursor-pointer group"
                   >
                     <div className="relative rounded-lg overflow-hidden bg-muted aspect-video mb-1.5">
-                      <img src={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover" />
+                      <ClipThumbnail jobId={clip.jobId} clipId={clip.id} fallback={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Play className="size-6 text-white" fill="white" />
                       </div>

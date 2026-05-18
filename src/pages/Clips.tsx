@@ -10,6 +10,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { clips, episodes } from "@/data/sample"
+import { VideoPlayer } from "@/components/VideoPlayer"
+import { ClipThumbnail } from "@/components/ClipThumbnail"
+import { videoUrl, thumbUrl, formatToVariant } from "@/lib/media"
 
 const platformIcons: Record<string, { short: string; color: string }> = {
   youtube: { short: "YT", color: "#ef4444" },
@@ -34,7 +37,7 @@ function ClipCard({ clip, onClick }: { clip: typeof clips[0]; onClick: () => voi
   return (
     <Card className="bg-card border-border overflow-hidden hover:border-primary/30 hover:glow-blue transition-all cursor-pointer group">
       <div className="relative aspect-video bg-muted overflow-hidden" onClick={onClick}>
-        <img src={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        <ClipThumbnail jobId={clip.jobId} clipId={clip.id} fallback={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <div className="size-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
             <Play className="size-5 text-white ml-0.5" fill="white" />
@@ -118,10 +121,17 @@ function ClipCard({ clip, onClick }: { clip: typeof clips[0]; onClick: () => voi
   )
 }
 
+const FORMATS = ["9:16", "1:1", "16:9"] as const
+const FORMAT_ASPECT: Record<string, string> = { "9:16": "9/16", "1:1": "1/1", "16:9": "16/9" }
+
 function ClipModal({ clip, onClose }: { clip: typeof clips[0] | null; onClose: () => void }) {
   const [tab, setTab] = useState("info")
+  const [format, setFormat] = useState<string>("9:16")
   if (!clip) return null
   const episode = episodes.find(e => e.id === clip.episodeId)
+  const variant = formatToVariant(format)
+  const src = videoUrl(clip.jobId, clip.id, variant)
+  const poster = thumbUrl(clip.jobId, clip.id)
 
   return (
     <Dialog open={!!clip} onOpenChange={() => onClose()}>
@@ -129,38 +139,22 @@ function ClipModal({ clip, onClose }: { clip: typeof clips[0] | null; onClose: (
         <div className="grid grid-cols-1 md:grid-cols-5 h-full">
           {/* Video side */}
           <div className="md:col-span-3 bg-black">
-            <div className="relative aspect-video">
-              <img src={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <button className="size-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
-                  <Play className="size-7 text-white ml-1" fill="white" />
-                </button>
-              </div>
-            </div>
+            <VideoPlayer
+              src={src}
+              poster={poster}
+              aspectRatio={FORMAT_ASPECT[format] ?? "16/9"}
+            />
             {/* Format tabs */}
             <div className="flex border-t border-border">
-              {["9:16", "1:1", "16:9"].map(fmt => (
+              {FORMATS.map(fmt => (
                 <button
                   key={fmt}
-                  className="flex-1 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors font-mono"
+                  onClick={() => setFormat(fmt)}
+                  className={`flex-1 py-2 text-xs font-mono transition-colors ${format === fmt ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-accent/50"}`}
                 >
                   {fmt}
                 </button>
               ))}
-            </div>
-            {/* Waveform placeholder */}
-            <div className="p-3">
-              <div className="h-12 bg-accent/30 rounded-lg flex items-center justify-center">
-                <div className="flex items-end gap-0.5 h-8">
-                  {Array.from({ length: 60 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 rounded-sm bg-primary/50"
-                      style={{ height: `${20 + Math.random() * 60}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -373,7 +367,7 @@ export default function Clips() {
               const episode = episodes.find(e => e.id === clip.episodeId)
               return (
                 <div key={clip.id} className="flex items-center gap-4 p-3 hover:bg-accent/20 cursor-pointer" onClick={() => setSelectedClip(clip)}>
-                  <img src={clip.thumbnail} alt={clip.hook} className="w-24 aspect-video object-cover rounded" />
+                  <ClipThumbnail jobId={clip.jobId} clipId={clip.id} fallback={clip.thumbnail} alt={clip.hook} className="w-24 aspect-video object-cover rounded" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground truncate">{episode?.title}</p>
                     <p className="text-sm font-semibold text-foreground truncate">{clip.hook}</p>
@@ -414,7 +408,7 @@ export default function Clips() {
                 </div>
                 {colClips.map(clip => (
                   <div key={clip.id} className="bg-card border border-border rounded-xl p-2.5 cursor-pointer hover:border-primary/30 transition-colors" onClick={() => setSelectedClip(clip)}>
-                    <img src={clip.thumbnail} alt={clip.hook} className="w-full aspect-video object-cover rounded mb-2" />
+                    <ClipThumbnail jobId={clip.jobId} clipId={clip.id} fallback={clip.thumbnail} alt={clip.hook} className="w-full aspect-video object-cover rounded mb-2" />
                     <p className="text-xs font-medium text-foreground line-clamp-2">{clip.hook}</p>
                   </div>
                 ))}
