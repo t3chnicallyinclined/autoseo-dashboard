@@ -4,6 +4,8 @@ import { jobsRouter } from "./jobs.js";
 import { clipsRouter } from "./clips.js";
 import { analyticsRouter } from "./analytics.js";
 import { trendsRouter } from "./routes/trends.js";
+import platformsRouter from "./routes/platforms.js";
+import postsRouter from "./routes/posts.js";
 import { getDb, closeDb } from "./db.js";
 
 export function createApp() {
@@ -15,6 +17,8 @@ export function createApp() {
   app.use("/api/clips", clipsRouter);
   app.use("/api/analytics", analyticsRouter(db));
   app.use("/api/trends", trendsRouter);
+  app.use("/api/platforms", platformsRouter);
+  app.use("/api", postsRouter);
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
