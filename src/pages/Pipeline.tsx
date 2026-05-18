@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { jobs, shows, pipelineStages } from "@/data/sample"
+import { jobs as sampleJobs, shows, pipelineStages as samplePipelineStages } from "@/data/sample"
+import { useWS } from "@/contexts/WebSocketContext"
 
 const stageDescriptions: Record<string, { stats: string; config: string }> = {
   ingest: { stats: "Polled 12 emails, found 1 new attachment", config: "Gmail filter: label:podcast-ingest" },
@@ -33,6 +34,20 @@ const jobStatusColors: Record<string, string> = {
 }
 
 export default function Pipeline() {
+  const { live } = useWS()
+
+  const pipelineStages = samplePipelineStages.map(stage => {
+    const liveStage = live.pipelineStages[stage.id]
+    return liveStage ? { ...stage, status: liveStage.status } : stage
+  })
+
+  const jobs = sampleJobs.map(job => {
+    const liveJob = live.jobs[job.id]
+    return liveJob ? { ...job, ...liveJob } : job
+  })
+
+  const activeCount = jobs.filter(j => ["transcribing", "rendering", "ranking"].includes(j.status)).length
+
   return (
     <div className="space-y-6">
       {/* Pipeline Diagram */}
@@ -43,7 +58,7 @@ export default function Pipeline() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="size-2 rounded-full bg-emerald-500 status-pulse" />
-                <span>2 jobs active</span>
+                <span>{activeCount} job{activeCount !== 1 ? "s" : ""} active</span>
               </div>
               <Button variant="outline" size="sm" className="h-7 text-xs border-border">
                 <RefreshCw className="size-3 mr-1" /> Refresh

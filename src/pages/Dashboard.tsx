@@ -10,9 +10,10 @@ import {
   LineChart, Line, ResponsiveContainer,
 } from "recharts"
 import {
-  clips, platforms, trendingTopics, agents, analyticsData, jobs, pipelineStages, costData,
+  clips, platforms, trendingTopics, agents as sampleAgents, analyticsData, jobs as sampleJobs, pipelineStages as samplePipelineStages, costData as sampleCostData,
 } from "@/data/sample"
 import { ClipThumbnail } from "@/components/ClipThumbnail"
+import { useWS } from "@/contexts/WebSocketContext"
 
 function StatCard({ title, value, delta, deltaLabel, icon: Icon, color, sparkData }: {
   title: string
@@ -173,19 +174,42 @@ function AgentCard({ agent }: { agent: typeof agents[0] }) {
 }
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const { live } = useWS()
+
+  const jobs = sampleJobs.map(job => {
+    const liveJob = live.jobs[job.id]
+    return liveJob ? { ...job, ...liveJob } : job
+  })
+
+  const pipelineStages = samplePipelineStages.map(stage => {
+    const liveStage = live.pipelineStages[stage.id]
+    return liveStage ? { ...stage, status: liveStage.status } : stage
+  })
+
+  const agents = sampleAgents.map(agent => {
+    const liveAgent = live.agents[agent.id]
+    return liveAgent ? { ...agent, ...liveAgent } : agent
+  })
+
+  const costData = live.cost ? { ...sampleCostData, total: live.cost.total, dailyBurn: live.cost.dailyBurn } : sampleCostData
+
   const activeJobs = jobs.filter(j => ["transcribing", "rendering", "ranking"].includes(j.status))
   const recentClips = clips.slice(0, 8)
-  const totalViews = analyticsData.views.reduce((s, d) => s + d.youtube + d.bluesky + d.linkedin + d.threads, 0)
+  const totalViews = live.stats.totalViews ?? analyticsData.views.reduce((s, d) => s + d.youtube + d.bluesky + d.linkedin + d.threads, 0)
+  const liveActiveJobs = live.stats.activeJobs ?? activeJobs.length
+  const liveClipsWeek = live.stats.clipsThisWeek ?? 108
+  const livePosts = live.stats.postsPublished ?? 47
+  const liveAvgCtr = live.stats.avgCtr ?? 12.4
 
   return (
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="flex gap-4 overflow-x-auto pb-1">
-        <StatCard title="Active Jobs" value="2" icon={Briefcase} color="#3b82f6" sparkData={sparkJobs} />
-        <StatCard title="Clips This Week" value="108" delta="+23" deltaLabel="vs last week" icon={Film} color="#8b5cf6" />
-        <StatCard title="Posts Published" value="47" delta="+12" deltaLabel="this week" icon={Send} color="#22c55e" />
+        <StatCard title="Active Jobs" value={liveActiveJobs.toString()} icon={Briefcase} color="#3b82f6" sparkData={sparkJobs} />
+        <StatCard title="Clips This Week" value={liveClipsWeek.toString()} delta="+23" deltaLabel="vs last week" icon={Film} color="#8b5cf6" />
+        <StatCard title="Posts Published" value={livePosts.toString()} delta="+12" deltaLabel="this week" icon={Send} color="#22c55e" />
         <StatCard title="Total Views" value={totalViews.toString()} delta="+34%" deltaLabel="vs last week" icon={Eye} color="#3b82f6" sparkData={sparkViews} />
-        <StatCard title="Avg CTR" value="12.4%" delta="+1.2%" deltaLabel="vs last week" icon={MousePointer} color="#f59e0b" sparkData={sparkCtr} />
+        <StatCard title="Avg CTR" value={`${liveAvgCtr}%`} delta="+1.2%" deltaLabel="vs last week" icon={MousePointer} color="#f59e0b" sparkData={sparkCtr} />
         <StatCard title="API Spend" value={`$${costData.total}`} delta={`$${costData.dailyBurn}/day`} icon={DollarSign} color="#ef4444" />
       </div>
 
@@ -199,7 +223,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                 <CardTitle className="text-sm font-semibold text-foreground">Live Pipeline</CardTitle>
                 <div className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-emerald-500 status-pulse" />
-                  <span className="text-xs text-emerald-400">2 jobs in flight</span>
+                  <span className="text-xs text-emerald-400">{activeJobs.length} job{activeJobs.length !== 1 ? "s" : ""} in flight</span>
                 </div>
               </div>
             </CardHeader>

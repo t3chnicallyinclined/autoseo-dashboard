@@ -13,6 +13,7 @@ import { clips, episodes } from "@/data/sample"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import { ClipThumbnail } from "@/components/ClipThumbnail"
 import { videoUrl, thumbUrl, formatToVariant } from "@/lib/media"
+import { useWS } from "@/contexts/WebSocketContext"
 
 const platformIcons: Record<string, { short: string; color: string }> = {
   youtube: { short: "YT", color: "#ef4444" },
@@ -295,10 +296,16 @@ function ClipModal({ clip, onClose }: { clip: typeof clips[0] | null; onClose: (
 }
 
 export default function Clips() {
+  const { live } = useWS()
   const [viewMode, setViewMode] = useState("grid")
   const [search, setSearch] = useState("")
-  const [selectedClip, setSelectedClip] = useState<typeof clips[0] | null>(null)
+  const [selectedClip, setSelectedClip] = useState<typeof sampleClips[0] | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
+
+  const clips = sampleClips.map(clip => {
+    const livePlatforms = live.clipPlatforms[clip.id]
+    return livePlatforms ? { ...clip, platforms: { ...clip.platforms, ...livePlatforms } } : clip
+  })
 
   const filtered = clips.filter(c => {
     if (search && !c.hook.toLowerCase().includes(search.toLowerCase())) return false
