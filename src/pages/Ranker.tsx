@@ -6,7 +6,9 @@ import {
   LineChart, Line,
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart"
-import { clips } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useClips } from "@/api/hooks"
+import { toast } from "sonner"
 
 const scoreDistData = [
   { range: "0-10", count: 0 },
@@ -49,6 +51,21 @@ const vlmRerank = [
 ]
 
 export default function Ranker() {
+  const { data: clips = [], isLoading, error } = useClips()
+
+  if (error) toast.error("Failed to load ranker data")
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

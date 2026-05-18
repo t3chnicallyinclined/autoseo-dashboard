@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react"
-import { Settings, Unlink, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Clock, Loader2 } from "lucide-react"
+import { Settings, Unlink, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Clock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { api, type PlatformInfo } from "@/lib/api"
-import { platforms as samplePlatforms } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { usePlatforms } from "@/api/hooks"
+import { toast } from "sonner"
 
 const statusConfig = {
   connected: { label: "Connected", icon: CheckCircle2, class: "text-emerald-400", dot: "bg-emerald-500" },
@@ -14,26 +14,24 @@ const statusConfig = {
 }
 
 export default function Platforms() {
-  const [platforms, setPlatforms] = useState<PlatformInfo[]>(samplePlatforms as PlatformInfo[])
-  const [loading, setLoading] = useState(true)
+  const { data: platforms = [], isLoading, error } = usePlatforms()
 
-  useEffect(() => {
-    api.getPlatforms()
-      .then(setPlatforms)
-      .catch(() => {
-        // Fall back to sample data if API unavailable
-      })
-      .finally(() => setLoading(false))
-  }, [])
+  if (error) toast.error("Failed to load platforms")
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Loading platforms...
-        </div>
-      )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {platforms.map(platform => {
           const sc = statusConfig[platform.status as keyof typeof statusConfig] ?? statusConfig.not_configured

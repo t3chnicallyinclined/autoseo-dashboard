@@ -2,8 +2,10 @@ import { Loader as Loader2, CircleCheck as CheckCircle2, CircleAlert as AlertCir
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { agents } from "@/data/sample"
+import { useAgents } from "@/api/hooks"
+import { toast } from "sonner"
 
 const recentTasks = [
   { agent: "Atlas", issue: "JRE #2247 ranking pass", status: "success", started: "09:12:04", duration: "8m 22s", result: "12 clips" },
@@ -15,6 +17,22 @@ const recentTasks = [
 ]
 
 export default function Agents() {
+  const { data: agents = [], isLoading, error } = useAgents()
+
+  if (error) toast.error("Failed to load agents")
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Agent cards */}

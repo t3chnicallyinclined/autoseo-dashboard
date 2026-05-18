@@ -3,9 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { shows, episodes } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useShows, useEpisodes } from "@/api/hooks"
+import { toast } from "sonner"
 
 export default function Shows() {
+  const { data: shows = [], isLoading: showsLoading, error } = useShows()
+  const { data: episodes = [], isLoading: epsLoading } = useEpisodes()
+
+  if (error) toast.error("Failed to load shows")
+
+  if (showsLoading || epsLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4">
       <div className="flex justify-end">

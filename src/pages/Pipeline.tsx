@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { jobs as sampleJobs, shows, pipelineStages as samplePipelineStages } from "@/data/sample"
-import { useWS } from "@/contexts/WebSocketContext"
+import { useJobs, useShows, usePipelineStages } from "@/api/hooks"
+import { toast } from "sonner"
 
 const stageDescriptions: Record<string, { stats: string; config: string }> = {
   ingest: { stats: "Polled 12 emails, found 1 new attachment", config: "Gmail filter: label:podcast-ingest" },
@@ -34,19 +35,20 @@ const jobStatusColors: Record<string, string> = {
 }
 
 export default function Pipeline() {
-  const { live } = useWS()
+  const { data: jobs = [], isLoading: jobsLoading, error } = useJobs()
+  const { data: shows = [] } = useShows()
+  const { data: pipelineStages = [], isLoading: stagesLoading } = usePipelineStages()
 
-  const pipelineStages = samplePipelineStages.map(stage => {
-    const liveStage = live.pipelineStages[stage.id]
-    return liveStage ? { ...stage, status: liveStage.status } : stage
-  })
+  if (error) toast.error("Failed to load pipeline data")
 
-  const jobs = sampleJobs.map(job => {
-    const liveJob = live.jobs[job.id]
-    return liveJob ? { ...job, ...liveJob } : job
-  })
-
-  const activeCount = jobs.filter(j => ["transcribing", "rendering", "ranking"].includes(j.status)).length
+  if (jobsLoading || stagesLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -58,7 +60,7 @@ export default function Pipeline() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="size-2 rounded-full bg-emerald-500 status-pulse" />
-                <span>{activeCount} job{activeCount !== 1 ? "s" : ""} active</span>
+                <span>2 jobs active</span>
               </div>
               <Button variant="outline" size="sm" className="h-7 text-xs border-border">
                 <RefreshCw className="size-3 mr-1" /> Refresh

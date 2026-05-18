@@ -3,9 +3,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { trendingTopics } from "@/data/sample"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useTrends } from "@/api/hooks"
+import { toast } from "sonner"
 
 export default function Trends() {
+  const { data: trendingTopics, isLoading, error } = useTrends()
+
+  if (error) toast.error("Failed to load trends")
+
+  if (isLoading || !trendingTopics) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-80 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">

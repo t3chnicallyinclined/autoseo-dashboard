@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   LineChart, Line, ResponsiveContainer,
 } from "recharts"
 import {
-  clips, platforms, trendingTopics, agents as sampleAgents, analyticsData, jobs as sampleJobs, pipelineStages as samplePipelineStages, costData as sampleCostData,
-} from "@/data/sample"
-import { ClipThumbnail } from "@/components/ClipThumbnail"
-import { useWS } from "@/contexts/WebSocketContext"
+  useClips, usePlatforms, useTrends, useAgents, useAnalytics, useJobs, usePipelineStages, useCostData,
+} from "@/api/hooks"
+import { toast } from "sonner"
+import type { Platform, Agent, PipelineStage } from "@/api/types"
 
 function StatCard({ title, value, delta, deltaLabel, icon: Icon, color, sparkData }: {
   title: string
@@ -86,7 +87,7 @@ const sparkJobs = [{ v: 3 }, { v: 5 }, { v: 2 }, { v: 7 }, { v: 4 }, { v: 8 }, {
 const sparkViews = [{ v: 12000 }, { v: 48000 }, { v: 89000 }, { v: 124000 }, { v: 98000 }, { v: 145000 }, { v: 182000 }]
 const sparkCtr = [{ v: 11 }, { v: 13 }, { v: 12 }, { v: 15 }, { v: 14 }, { v: 16 }, { v: 15 }]
 
-function PipelineStageChip({ stage, isActive }: { stage: typeof pipelineStages[0], isActive: boolean }) {
+function PipelineStageChip({ stage, isActive }: { stage: PipelineStage, isActive: boolean }) {
   const colors = {
     done: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" },
     active: { bg: "bg-primary/20", text: "text-primary", border: "border-primary/50" },
@@ -109,7 +110,7 @@ function PipelineStageChip({ stage, isActive }: { stage: typeof pipelineStages[0
   )
 }
 
-function PlatformStatusRow({ platform }: { platform: typeof platforms[0] }) {
+function PlatformStatusRow({ platform }: { platform: Platform }) {
   const statusColors = {
     connected: "bg-emerald-500",
     pending: "bg-amber-500",
@@ -151,7 +152,7 @@ function PlatformStatusRow({ platform }: { platform: typeof platforms[0] }) {
   )
 }
 
-function AgentCard({ agent }: { agent: typeof agents[0] }) {
+function AgentCard({ agent }: { agent: Agent }) {
   return (
     <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent/30 border border-border hover:bg-accent/50 transition-colors">
       <div className="relative">
@@ -174,43 +175,44 @@ function AgentCard({ agent }: { agent: typeof agents[0] }) {
 }
 
 export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const { live } = useWS()
+  const { data: clips = [], isLoading: clipsLoading } = useClips()
+  const { data: platforms = [] } = usePlatforms()
+  const { data: trendingTopics } = useTrends()
+  const { data: agents = [] } = useAgents()
+  const { data: analyticsData } = useAnalytics()
+  const { data: jobs = [] } = useJobs()
+  const { data: pipelineStages = [] } = usePipelineStages()
+  const { data: costData, error } = useCostData()
 
-  const jobs = sampleJobs.map(job => {
-    const liveJob = live.jobs[job.id]
-    return liveJob ? { ...job, ...liveJob } : job
-  })
+  if (error) toast.error("Failed to load dashboard data")
 
-  const pipelineStages = samplePipelineStages.map(stage => {
-    const liveStage = live.pipelineStages[stage.id]
-    return liveStage ? { ...stage, status: liveStage.status } : stage
-  })
-
-  const agents = sampleAgents.map(agent => {
-    const liveAgent = live.agents[agent.id]
-    return liveAgent ? { ...agent, ...liveAgent } : agent
-  })
-
-  const costData = live.cost ? { ...sampleCostData, total: live.cost.total, dailyBurn: live.cost.dailyBurn } : sampleCostData
+  if (clipsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex gap-4 overflow-x-auto pb-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 min-w-[160px] flex-1 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    )
+  }
 
   const activeJobs = jobs.filter(j => ["transcribing", "rendering", "ranking"].includes(j.status))
   const recentClips = clips.slice(0, 8)
-  const totalViews = live.stats.totalViews ?? analyticsData.views.reduce((s, d) => s + d.youtube + d.bluesky + d.linkedin + d.threads, 0)
-  const liveActiveJobs = live.stats.activeJobs ?? activeJobs.length
-  const liveClipsWeek = live.stats.clipsThisWeek ?? 108
-  const livePosts = live.stats.postsPublished ?? 47
-  const liveAvgCtr = live.stats.avgCtr ?? 12.4
+  const totalViews = analyticsData?.views.reduce((s, d) => s + d.youtube + d.bluesky + d.linkedin + d.threads, 0) ?? 0
 
   return (
     <div className="space-y-6">
       {/* Stat cards */}
       <div className="flex gap-4 overflow-x-auto pb-1">
-        <StatCard title="Active Jobs" value={liveActiveJobs.toString()} icon={Briefcase} color="#3b82f6" sparkData={sparkJobs} />
-        <StatCard title="Clips This Week" value={liveClipsWeek.toString()} delta="+23" deltaLabel="vs last week" icon={Film} color="#8b5cf6" />
-        <StatCard title="Posts Published" value={livePosts.toString()} delta="+12" deltaLabel="this week" icon={Send} color="#22c55e" />
+        <StatCard title="Active Jobs" value="2" icon={Briefcase} color="#3b82f6" sparkData={sparkJobs} />
+        <StatCard title="Clips This Week" value="108" delta="+23" deltaLabel="vs last week" icon={Film} color="#8b5cf6" />
+        <StatCard title="Posts Published" value="47" delta="+12" deltaLabel="this week" icon={Send} color="#22c55e" />
         <StatCard title="Total Views" value={totalViews.toString()} delta="+34%" deltaLabel="vs last week" icon={Eye} color="#3b82f6" sparkData={sparkViews} />
-        <StatCard title="Avg CTR" value={`${liveAvgCtr}%`} delta="+1.2%" deltaLabel="vs last week" icon={MousePointer} color="#f59e0b" sparkData={sparkCtr} />
-        <StatCard title="API Spend" value={`$${costData.total}`} delta={`$${costData.dailyBurn}/day`} icon={DollarSign} color="#ef4444" />
+        <StatCard title="Avg CTR" value="12.4%" delta="+1.2%" deltaLabel="vs last week" icon={MousePointer} color="#f59e0b" sparkData={sparkCtr} />
+        <StatCard title="API Spend" value={`$${costData?.total ?? 0}`} delta={`$${costData?.dailyBurn ?? 0}/day`} icon={DollarSign} color="#ef4444" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -223,7 +225,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                 <CardTitle className="text-sm font-semibold text-foreground">Live Pipeline</CardTitle>
                 <div className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-emerald-500 status-pulse" />
-                  <span className="text-xs text-emerald-400">{activeJobs.length} job{activeJobs.length !== 1 ? "s" : ""} in flight</span>
+                  <span className="text-xs text-emerald-400">2 jobs in flight</span>
                 </div>
               </div>
             </CardHeader>
@@ -284,7 +286,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                     className="shrink-0 w-36 cursor-pointer group"
                   >
                     <div className="relative rounded-lg overflow-hidden bg-muted aspect-video mb-1.5">
-                      <ClipThumbnail jobId={clip.jobId} clipId={clip.id} fallback={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover" />
+                      <img src={clip.thumbnail} alt={clip.hook} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Play className="size-6 text-white" fill="white" />
                       </div>
@@ -345,7 +347,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                   <TabsTrigger value="google" className="text-xs h-6">Google</TabsTrigger>
                 </TabsList>
                 <TabsContent value="gdelt" className="space-y-1.5 mt-0">
-                  {trendingTopics.gdelt.map(t => (
+                  {(trendingTopics?.gdelt ?? []).map(t => (
                     <div key={t.topic} className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -363,7 +365,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                   ))}
                 </TabsContent>
                 <TabsContent value="reddit" className="space-y-1.5 mt-0">
-                  {trendingTopics.reddit.map(t => (
+                  {(trendingTopics?.reddit ?? []).map(t => (
                     <div key={t.title} className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-foreground truncate leading-snug">{t.title}</p>
@@ -376,7 +378,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (p: string) => v
                   ))}
                 </TabsContent>
                 <TabsContent value="google" className="space-y-1.5 mt-0">
-                  {trendingTopics.google.map(t => (
+                  {(trendingTopics?.google ?? []).map(t => (
                     <div key={t.term} className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-foreground truncate">{t.term}</p>

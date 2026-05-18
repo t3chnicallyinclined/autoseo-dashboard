@@ -6,8 +6,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
-import { costData as sampleCostData } from "@/data/sample"
-import { useWS } from "@/contexts/WebSocketContext"
+import { useCostData } from "@/api/hooks"
 
 interface NavItem {
   label: string
@@ -69,11 +68,8 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
-  const { live, connectionStatus } = useWS()
-  const costData = live.cost
-    ? { ...sampleCostData, total: live.cost.total, dailyBurn: live.cost.dailyBurn }
-    : sampleCostData
-  const budgetPct = (costData.total / costData.budget) * 100
+  const { data: costData } = useCostData()
+  const budgetPct = costData ? (costData.total / costData.budget) * 100 : 0
   const costColor = budgetPct > 90 ? "text-red-400" : budgetPct > 75 ? "text-amber-400" : "text-emerald-400"
 
   return (
@@ -132,7 +128,7 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
             <DollarSign className="size-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">This month</span>
             <span className={`text-xs font-mono font-bold ml-auto ${costColor}`}>
-              ${costData.total.toFixed(2)}
+              ${costData?.total.toFixed(2) ?? "—"}
             </span>
           </div>
           <div className="h-1 bg-muted rounded-full overflow-hidden">
@@ -142,8 +138,8 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-xs text-muted-foreground/60">${costData.dailyBurn.toFixed(2)}/day</span>
-            <span className="text-xs text-muted-foreground/60">${costData.budget} budget</span>
+            <span className="text-xs text-muted-foreground/60">${costData?.dailyBurn.toFixed(2) ?? "—"}/day</span>
+            <span className="text-xs text-muted-foreground/60">${costData?.budget ?? "—"} budget</span>
           </div>
         </div>
         {/* Icon mode cost */}
@@ -154,10 +150,8 @@ export function AppSidebar({ currentPage, onNavigate }: AppSidebarProps) {
         {/* System health */}
         <div className="flex items-center gap-2 px-1 group-data-[collapsible=icon]:justify-center">
           <div className="flex items-center gap-1.5">
-            <span className={`size-2 rounded-full inline-block ${connectionStatus === "connected" ? "bg-emerald-500 status-pulse" : connectionStatus === "connecting" ? "bg-amber-500 animate-pulse" : "bg-red-500"}`} />
-            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-              {connectionStatus === "connected" ? "Live" : connectionStatus === "connecting" ? "Connecting..." : "Disconnected"}
-            </span>
+            <span className="size-2 rounded-full bg-emerald-500 status-pulse inline-block" />
+            <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">System Healthy</span>
           </div>
           <ChevronRight className="size-3 text-muted-foreground/40 ml-auto group-data-[collapsible=icon]:hidden" />
         </div>
