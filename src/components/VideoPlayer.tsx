@@ -15,7 +15,7 @@ export function VideoPlayer({ src, poster, aspectRatio = "16/9" }: VideoPlayerPr
   const [error, setError] = useState(false)
   const [progress, setProgress] = useState(0)
   const [showControls, setShowControls] = useState(true)
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>()
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const resetState = useCallback(() => {
     setPlaying(false)

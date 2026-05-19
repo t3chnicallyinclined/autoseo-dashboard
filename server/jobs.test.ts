@@ -63,7 +63,7 @@ beforeEach(() => {
   process.env.CLIPPER_DB = ":memory:";
   // Force new DB for each test
   closeDb();
-  app = createApp();
+  app = createApp().app;
   seedDb();
 });
 

@@ -105,3 +105,80 @@ export async function bulkAction(clipIds: string[], action: string, platforms?: 
     body: JSON.stringify({ clip_ids: clipIds, action, platforms }),
   })
 }
+
+// ── Analytics ─────────────────────────────────────────────────────────
+
+export type DateRange = "7d" | "30d" | "90d"
+
+export interface OverviewData {
+  total_views: number
+  avg_ctr: number
+  avg_watch_pct: number
+  clip_count: number
+}
+
+// One row per date with per-platform view totals. Platform keys are filled
+// in by the backend pivot (currently youtube/bluesky/linkedin/threads).
+export interface ViewsRow {
+  date: string
+  youtube: number
+  bluesky: number
+  linkedin: number
+  threads: number
+}
+
+export interface CtrRow {
+  platform: string
+  ctr: number
+}
+
+export interface WatchBucket {
+  bucket: string
+  count: number
+}
+
+export interface ScatterPoint {
+  clip_id: string
+  hook: string
+  score: number
+  ctr: number
+  views: number
+}
+
+export interface TopClip {
+  rank: number
+  hook: string
+  episode: string
+  platform: string
+  views: number
+  ctr: number
+  watchPct: number
+  score: number
+}
+
+export interface ShowStats {
+  show: string
+  total_views: number
+  avg_ctr: number
+  avg_watch_pct: number
+  clip_count: number
+}
+
+export const analyticsApi = {
+  overview: (range: DateRange) =>
+    request<OverviewData>(`/api/analytics/overview?range=${range}`),
+  views: (range: DateRange) =>
+    request<ViewsRow[]>(`/api/analytics/views?range=${range}`),
+  ctr: (range: DateRange) =>
+    request<CtrRow[]>(`/api/analytics/ctr?range=${range}`),
+  watchDistribution: (range: DateRange) =>
+    request<WatchBucket[]>(`/api/analytics/watch-distribution?range=${range}`),
+  scoreVsPerformance: (range: DateRange) =>
+    request<ScatterPoint[]>(`/api/analytics/score-vs-performance?range=${range}`),
+  topClips: (range: DateRange, limit?: number) => {
+    const q = limit ? `?range=${range}&limit=${limit}` : `?range=${range}`
+    return request<TopClip[]>(`/api/analytics/top-clips${q}`)
+  },
+  byShow: (range: DateRange) =>
+    request<ShowStats[]>(`/api/analytics/by-show?range=${range}`),
+}
