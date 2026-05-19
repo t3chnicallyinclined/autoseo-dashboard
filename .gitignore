@@ -5,3 +5,12 @@ dist/
 .bolt/
 *.log
 .DS_Store
+
+# TypeScript build-info cache (per-project ref output)
+tsconfig.*.tsbuildinfo
+
+# Local SQLite database created by the dev/test server
+clipper.db
+clipper.db-journal
+clipper.db-wal
+clipper.db-shm
