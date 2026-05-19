@@ -50,6 +50,10 @@ const DB_PATH = process.env.CLIPPER_DB ?? path.resolve("clipper.db");
 
 let _db: Database.Database | null = null;
 
+export function getDbPath(): string {
+  return DB_PATH;
+}
+
 export function getDb(): Database.Database {
   if (!_db) {
     _db = new Database(DB_PATH, { readonly: false });

@@ -165,7 +165,7 @@ interface WSContextValue {
 
 const WSContext = createContext<WSContextValue | null>(null)
 
-const WS_URL = (typeof window !== "undefined" && (window as Record<string, unknown>).__AUTOSEO_WS_URL as string)
+const WS_URL = (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).__AUTOSEO_WS_URL as string)
   || import.meta.env.VITE_WS_URL
   || `ws://${window.location.hostname}:9090/ws`
 

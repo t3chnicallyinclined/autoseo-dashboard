@@ -45,10 +45,8 @@ export function useJobs() {
     if (actionInFlight.current.has(`${jobId}:${action}`)) return
     actionInFlight.current.add(`${jobId}:${action}`)
 
-    // Snapshot for rollback
-    const snapshot = jobs
-
-    // Optimistic update
+    // Optimistic update — we intentionally don't roll back on error in dev/demo mode
+    // (see catch block below), so no snapshot is needed.
     setJobs(prev => {
       const result: Job[] = []
       for (const j of prev) {

@@ -105,23 +105,27 @@ function seedTestData() {
   ).run("clip-1", "bluesky", now - 600, 3200, 6.8, 62.0);
 }
 
-async function get(path: string) {
+// `fetch`'s `Response.json()` returns `Promise<unknown>` under our TS lib config,
+// so we cast to `any` here to keep ad-hoc body access ergonomic in tests.
+type AnyBody = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+async function get(path: string): Promise<{ status: number; body: AnyBody }> {
   const res = await fetch(`${baseUrl}${path}`);
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: (await res.json()) as AnyBody };
 }
 
-async function post(path: string, data?: object) {
+async function post(path: string, data?: object): Promise<{ status: number; body: AnyBody }> {
   const res = await fetch(`${baseUrl}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data || {}),
   });
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: (await res.json()) as AnyBody };
 }
 
-async function patch(path: string) {
+async function patch(path: string): Promise<{ status: number; body: AnyBody }> {
   const res = await fetch(`${baseUrl}${path}`, { method: "PATCH" });
-  return { status: res.status, body: await res.json() };
+  return { status: res.status, body: (await res.json()) as AnyBody };
 }
 
 describe("GET /api/platforms", () => {
