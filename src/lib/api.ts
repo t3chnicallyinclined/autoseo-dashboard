@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080"
+// Default: same-origin (empty string → relative URLs). Works whether the SPA
+// is served by the autoseo backend on its own port, by `npm run dev` with the
+// Vite `/api` proxy, or behind a reverse proxy / ngrok tunnel.
+// Set VITE_API_URL only when the API lives on a different origin than the SPA.
+const API_BASE = import.meta.env.VITE_API_URL ?? ""
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
