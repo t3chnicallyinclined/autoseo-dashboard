@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { type Job, type JobStatus, jobsApi, connectJobsWs } from "@/services/api"
-import { jobs as sampleJobs } from "@/data/sample"
-
-// Seed state from sample data (with "paused" / "cancelled" added to the type union)
-const initialJobs: Job[] = sampleJobs.map(j => ({ ...j, status: j.status as JobStatus }))
 
 export function useJobs() {
-  const [jobs, setJobs] = useState<Job[]>(initialJobs)
+  const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const actionInFlight = useRef<Set<string>>(new Set())

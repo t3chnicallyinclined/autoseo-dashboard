@@ -165,9 +165,14 @@ interface WSContextValue {
 
 const WSContext = createContext<WSContextValue | null>(null)
 
+// Default to same-origin /ws so the connection works whether the SPA is
+// served from the autoseo backend directly, via a reverse proxy, or
+// through a VSCode / ngrok forwarded port.
 const WS_URL = (typeof window !== "undefined" && (window as unknown as Record<string, unknown>).__AUTOSEO_WS_URL as string)
   || import.meta.env.VITE_WS_URL
-  || `ws://${window.location.hostname}:9090/ws`
+  || (typeof window !== "undefined"
+       ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`
+       : "")
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [live, dispatch] = useReducer(reducer, initialState)
