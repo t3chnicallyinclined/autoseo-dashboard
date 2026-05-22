@@ -20,6 +20,38 @@ export interface Episode {
 export type ClipStatus = "posted" | "approved" | "generated" | "vetoed"
 export type PlatformPostStatus = "posted" | "pending" | "failed" | "skipped"
 
+export interface ClipVariant {
+  variant: string  // "9x16" | "1x1" | "16x9" | other
+  url: string | null
+  bytes?: number | null
+  duration_ms?: number | null
+}
+
+/** Social-media copy keyed by platform — shape varies per platform.
+ *  We treat fields as optional strings/arrays so the UI can probe gracefully. */
+export interface ClipSocialEntry {
+  title?: string
+  description?: string
+  caption?: string
+  text?: string
+  post_text?: string
+  hashtags?: string[]
+  tags?: string[]
+  pinned_comment?: string
+}
+
+export interface ClipSocial {
+  overlay_hook?: string
+  hook_source?: string
+  youtube_shorts?: ClipSocialEntry
+  tiktok?: ClipSocialEntry
+  instagram_reels?: ClipSocialEntry
+  threads?: ClipSocialEntry
+  linkedin?: ClipSocialEntry
+  x?: ClipSocialEntry
+  bluesky?: ClipSocialEntry
+}
+
 export interface Clip {
   id: string
   episodeId: string
@@ -34,6 +66,16 @@ export interface Clip {
   views: number
   ctr: number
   watchPct: number
+  /** All rendered aspect-ratio variants (from clip_renders + manifest). */
+  variants?: ClipVariant[]
+  /** Per-platform social-media copy (from manifest.json, when present). */
+  social?: ClipSocial | null
+  /** 2–5 word overlay text burned into the first ~1.5s of the clip. */
+  overlayHook?: string | null
+  /** Source of the hook: "llm" | "ranker" — for surfacing provenance. */
+  hookSource?: string | null
+  /** Reasoning behind the ranker's choice of this clip. */
+  reasoning?: string | null
 }
 
 export type JobStatus = "done" | "transcribing" | "rendering" | "failed" | "pending"
