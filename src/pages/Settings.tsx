@@ -375,6 +375,77 @@ export default function Settings() {
               <MaskedInput label="App Password" configKey="BLUESKY_APP_PASSWORD" value={getStr("BLUESKY_APP_PASSWORD")} onChange={updateField} testService="bluesky" />
               <Separator />
               <MaskedInput label="Ayrshare API Key" configKey="AYRSHARE_API_KEY" value={getStr("AYRSHARE_API_KEY")} onChange={updateField} testService="ayrshare" />
+              <Separator />
+              <p className="text-xs text-muted-foreground font-medium">Object Storage (Cloudflare R2 / S3-compatible)</p>
+              <p className="text-[11px] text-muted-foreground/70">
+                When set, rendered clips upload to your bucket and the dashboard reads
+                them from the public URL instead of the local <code>/media/clipper/*</code> proxy.
+                Leave blank to keep clips on the autoseo host's local disk.
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Endpoint URL</Label>
+                <Input
+                  value={getStr("R2_ENDPOINT")}
+                  onChange={e => updateField("R2_ENDPOINT", e.target.value)}
+                  placeholder="https://<accountid>.r2.cloudflarestorage.com"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Bucket</Label>
+                <Input
+                  value={getStr("R2_BUCKET")}
+                  onChange={e => updateField("R2_BUCKET", e.target.value)}
+                  placeholder="autoseo-clips"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
+              <MaskedInput label="Access Key ID" configKey="R2_ACCESS_KEY_ID" value={getStr("R2_ACCESS_KEY_ID")} onChange={updateField} />
+              <MaskedInput label="Secret Access Key" configKey="R2_SECRET_ACCESS_KEY" value={getStr("R2_SECRET_ACCESS_KEY")} onChange={updateField} testService="r2" />
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Public Base URL</Label>
+                <Input
+                  value={getStr("R2_PUBLIC_BASE_URL")}
+                  onChange={e => updateField("R2_PUBLIC_BASE_URL", e.target.value)}
+                  placeholder="https://pub-<hash>.r2.dev   or   https://media.your-domain.com"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Key Prefix (optional)</Label>
+                <Input
+                  value={getStr("R2_KEY_PREFIX", "clipper")}
+                  onChange={e => updateField("R2_KEY_PREFIX", e.target.value)}
+                  placeholder="clipper"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
+              <Separator />
+              <p className="text-xs text-muted-foreground font-medium">YouTube downloader (yt-dlp)</p>
+              <p className="text-[11px] text-muted-foreground/70">
+                YouTube increasingly requires signed-in cookies to download.
+                Set one of these so the worker can pull cookies from your local
+                browser or a Netscape-format cookies.txt file. Leave both blank
+                to use yt-dlp with no auth (works for most non-YouTube sites).
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Cookies from browser</Label>
+                <Input
+                  value={getStr("YTDLP_COOKIES_BROWSER")}
+                  onChange={e => updateField("YTDLP_COOKIES_BROWSER", e.target.value)}
+                  placeholder="firefox  |  chrome  |  chromium  |  brave  |  edge  |  safari"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Or path to cookies.txt</Label>
+                <Input
+                  value={getStr("YTDLP_COOKIES_FILE")}
+                  onChange={e => updateField("YTDLP_COOKIES_FILE", e.target.value)}
+                  placeholder="/path/to/cookies.txt"
+                  className="h-8 text-xs bg-accent/50 border-border font-mono"
+                />
+              </div>
             </CardContent>
           </Card>
         )}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import {
   Eye, EyeOff, ChevronRight, ChevronLeft, SkipForward,
   CircleCheck as CheckCircle2, Loader as Loader2, X as XCircle,
-  Sparkles, Key, Terminal, Share2, Upload, PartyPopper,
+  Sparkles, Key, Terminal, Share2, Upload, PartyPopper, Cloud,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,6 +22,13 @@ interface WizardState {
   youtubeRefreshToken: string
   blueskyHandle: string
   blueskyAppPassword: string
+  // Object storage (Cloudflare R2 / S3-compatible) — optional, defaults to local disk
+  r2Endpoint: string
+  r2AccessKeyId: string
+  r2SecretAccessKey: string
+  r2Bucket: string
+  r2PublicBaseUrl: string
+  r2Test: TestStatus
   videoSource: string
   openaiTest: TestStatus
   hfTest: TestStatus
@@ -33,6 +40,7 @@ const STEPS = [
   { id: "welcome", label: "Welcome", icon: Sparkles },
   { id: "ai-provider", label: "AI Provider", icon: Key },
   { id: "ffmpeg", label: "ffmpeg", icon: Terminal },
+  { id: "storage", label: "Storage", icon: Cloud },
   { id: "platforms", label: "Platforms", icon: Share2 },
   { id: "first-job", label: "First Job", icon: Upload },
   { id: "done", label: "Done", icon: PartyPopper },
@@ -132,6 +140,12 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
     youtubeRefreshToken: "",
     blueskyHandle: "",
     blueskyAppPassword: "",
+    r2Endpoint: "",
+    r2AccessKeyId: "",
+    r2SecretAccessKey: "",
+    r2Bucket: "",
+    r2PublicBaseUrl: "",
+    r2Test: "idle",
     videoSource: "",
     openaiTest: "idle",
     hfTest: "idle",
@@ -149,6 +163,29 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
     setTimeout(() => update(field, "success"), 1200)
   }, [update])
 
+  /** Test R2 by PATCHing the five core fields and calling /api/config/test/r2. */
+  const testR2 = useCallback(async () => {
+    update("r2Test", "testing")
+    try {
+      await fetch("/api/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          R2_ENDPOINT: state.r2Endpoint,
+          R2_ACCESS_KEY_ID: state.r2AccessKeyId,
+          R2_SECRET_ACCESS_KEY: state.r2SecretAccessKey,
+          R2_BUCKET: state.r2Bucket,
+          R2_PUBLIC_BASE_URL: state.r2PublicBaseUrl || "https://placeholder.invalid",
+        }),
+      })
+      const resp = await fetch("/api/config/test/r2", { method: "POST" })
+      const data = await resp.json()
+      update("r2Test", data.ok ? "success" : "error")
+    } catch {
+      update("r2Test", "error")
+    }
+  }, [state.r2Endpoint, state.r2AccessKeyId, state.r2SecretAccessKey, state.r2Bucket, state.r2PublicBaseUrl, update])
+
   // Auto-detect ffmpeg when reaching step 2
   useEffect(() => {
     if (step === 2 && state.ffmpegDetected === null && !state.ffmpegChecking) {
@@ -165,14 +202,38 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
       case 0: return true // welcome
       case 1: return state.openaiApiKey.trim().length > 0 // AI provider — key required
       case 2: return true // ffmpeg — informational
-      case 3: return true // platforms — optional
-      case 4: return true // first job — optional
-      case 5: return true // done
+      case 3: return true // storage — optional (skip = local disk)
+      case 4: return true // platforms — optional
+      case 5: return true // first job — optional
+      case 6: return true // done
       default: return false
     }
   }
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    // Persist all collected creds to the autoseo backend so the clipper picks
+    // them up via load_config_json_into_env() at startup.
+    const updates: Record<string, string | null> = {
+      OPENAI_API_KEY: state.openaiApiKey || null,
+      HF_API_KEY: state.hfApiKey || null,
+      GOOGLE_CLIENT_ID: state.youtubeClientId || null,
+      GOOGLE_REFRESH_TOKEN: state.youtubeRefreshToken || null,
+      BLUESKY_HANDLE: state.blueskyHandle || null,
+      BLUESKY_APP_PASSWORD: state.blueskyAppPassword || null,
+      R2_ENDPOINT: state.r2Endpoint || null,
+      R2_ACCESS_KEY_ID: state.r2AccessKeyId || null,
+      R2_SECRET_ACCESS_KEY: state.r2SecretAccessKey || null,
+      R2_BUCKET: state.r2Bucket || null,
+      R2_PUBLIC_BASE_URL: state.r2PublicBaseUrl || null,
+    }
+    try {
+      await fetch("/api/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+    } catch { /* offline — values stay in localStorage as a fallback */ }
+
     const config: AppConfig = {
       openaiApiKey: state.openaiApiKey,
       hfApiKey: state.hfApiKey || undefined,
@@ -330,8 +391,80 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               </div>
             )}
 
-            {/* Step 3: Platforms (optional) */}
+            {/* Step 3: Storage (Cloudflare R2 / S3-compatible) — optional */}
             {step === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold mb-1">Clip Storage</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Optional — upload rendered clips to Cloudflare R2 (or any
+                    S3-compatible bucket) instead of keeping them on the
+                    autoseo host's local disk. Skip to keep everything local;
+                    you can wire this up later from Settings.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs">Endpoint URL</Label>
+                    <Input
+                      value={state.r2Endpoint}
+                      onChange={e => update("r2Endpoint", e.target.value)}
+                      placeholder="https://<accountid>.r2.cloudflarestorage.com"
+                      className="h-10 text-sm bg-accent/50 border-border font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Bucket</Label>
+                    <Input
+                      value={state.r2Bucket}
+                      onChange={e => update("r2Bucket", e.target.value)}
+                      placeholder="autoseo-clips"
+                      className="h-10 text-sm bg-accent/50 border-border font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Access Key ID</Label>
+                    <Input
+                      value={state.r2AccessKeyId}
+                      onChange={e => update("r2AccessKeyId", e.target.value)}
+                      className="h-10 text-sm bg-accent/50 border-border font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs">Secret Access Key</Label>
+                    <PasswordInput
+                      value={state.r2SecretAccessKey}
+                      onChange={v => update("r2SecretAccessKey", v)}
+                      placeholder=""
+                      testStatus={state.r2Test}
+                      onTest={
+                        state.r2Endpoint && state.r2AccessKeyId && state.r2SecretAccessKey && state.r2Bucket
+                          ? testR2
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs">Public Base URL</Label>
+                    <Input
+                      value={state.r2PublicBaseUrl}
+                      onChange={e => update("r2PublicBaseUrl", e.target.value)}
+                      placeholder="https://pub-<hash>.r2.dev   or   https://media.your-domain.com"
+                      className="h-10 text-sm bg-accent/50 border-border font-mono"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Enable <span className="font-mono text-foreground">Public Access</span> on the
+                      bucket in the Cloudflare R2 dashboard to get a <span className="font-mono text-foreground">pub-…r2.dev</span> URL,
+                      or connect a custom domain.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Platforms (optional) */}
+            {step === 4 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold mb-1">Platforms</h2>
@@ -403,8 +536,8 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               </div>
             )}
 
-            {/* Step 4: First Job */}
-            {step === 4 && (
+            {/* Step 5: First Job */}
+            {step === 5 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold mb-1">Run Your First Job</h2>
@@ -455,8 +588,8 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               </div>
             )}
 
-            {/* Step 5: Done */}
-            {step === 5 && (
+            {/* Step 6: Done */}
+            {step === 6 && (
               <div className="text-center space-y-4">
                 <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-emerald-500/10 mb-2">
                   <PartyPopper className="size-8 text-emerald-400" />
@@ -506,7 +639,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
                 )}
               </div>
               <div className="flex gap-2">
-                {(step === 3 || step === 4) && (
+                {(step === 3 || step === 4 || step === 5) && (
                   <Button variant="ghost" size="sm" onClick={next} className="gap-1.5 text-muted-foreground">
                     Skip <SkipForward className="size-3.5" />
                   </Button>
