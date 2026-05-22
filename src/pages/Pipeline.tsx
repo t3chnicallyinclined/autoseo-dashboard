@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { CircleCheck as CheckCircle2, Loader as Loader2, Clock, CircleAlert as AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useJobs, useShows, usePipelineStatus } from "@/api/hooks"
 import { MultiQueryBoundary } from "@/components/QueryBoundary"
+import { NewJobDialog } from "@/components/NewJobDialog"
+import { JobDetailsDialog } from "@/components/JobDetailsDialog"
+import type { Job } from "@/api/types"
+import { useQueryClient } from "@tanstack/react-query"
 
 const stageDescriptions: Record<string, { stats: string; config: string }> = {
   ingest: { stats: "Polled 12 emails, found 1 new attachment", config: "Gmail filter: label:podcast-ingest" },
@@ -47,6 +52,22 @@ export default function Pipeline() {
   const jobsQuery = useJobs()
   const showsQuery = useShows()
   const pipelineQuery = usePipelineStatus()
+  const queryClient = useQueryClient()
+  const [newJobOpen, setNewJobOpen] = useState(false)
+  const [viewJob, setViewJob] = useState<Job | null>(null)
+
+  // Auto-refresh the jobs list every 5s when any job is still in-flight, so
+  // the user sees progress without needing to click around.
+  useEffect(() => {
+    const anyInFlight = (jobsQuery.data ?? []).some(
+      j => j.status !== "done" && j.status !== "failed",
+    )
+    if (!anyInFlight) return
+    const t = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] })
+    }, 5000)
+    return () => clearInterval(t)
+  }, [jobsQuery.data, queryClient])
 
   return (
     <MultiQueryBoundary queries={[jobsQuery, showsQuery, pipelineQuery]} skeleton={<PipelineSkeleton />}>
@@ -54,6 +75,13 @@ export default function Pipeline() {
         const jobs = jobsQuery.data!
         const shows = showsQuery.data!
         const pipelineStages = pipelineQuery.data!
+
+        // "Active" = any job not in a terminal state. Backend collapses the
+        // internal FSM into the small JobStatus vocabulary, so anything other
+        // than done/failed/cancelled is in-flight.
+        const activeCount = jobs.filter(
+          (j) => j.status !== "done" && j.status !== "failed" && (j.status as string) !== "cancelled",
+        ).length
 
         return (
           <div className="space-y-6">
@@ -64,8 +92,16 @@ export default function Pipeline() {
                   <CardTitle className="text-sm font-semibold">Pipeline Architecture</CardTitle>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <span className="size-2 rounded-full bg-emerald-500 status-pulse" />
-                      <span>2 jobs active</span>
+                      <span
+                        className={
+                          activeCount > 0
+                            ? "size-2 rounded-full bg-emerald-500 status-pulse"
+                            : "size-2 rounded-full bg-muted-foreground/40"
+                        }
+                      />
+                      <span>
+                        {activeCount} {activeCount === 1 ? "job" : "jobs"} active
+                      </span>
                     </div>
                     <Button variant="outline" size="sm" className="h-7 text-xs border-border">
                       <RefreshCw className="size-3 mr-1" /> Refresh
@@ -125,7 +161,11 @@ export default function Pipeline() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold">Active & Recent Jobs</CardTitle>
-                  <Button size="sm" className="h-7 text-xs bg-primary hover:bg-primary/90">
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs bg-primary hover:bg-primary/90"
+                    onClick={() => setNewJobOpen(true)}
+                  >
                     + New Job
                   </Button>
                 </div>
@@ -186,7 +226,12 @@ export default function Pipeline() {
                           </TableCell>
                           <TableCell className="pr-4">
                             <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" className="h-6 text-xs px-2">View</Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs px-2"
+                                onClick={() => setViewJob(job)}
+                              >View</Button>
                               {job.status === "failed" && (
                                 <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-amber-400 hover:text-amber-300">Retry</Button>
                               )}
@@ -199,6 +244,22 @@ export default function Pipeline() {
                 </Table>
               </CardContent>
             </Card>
+
+            <NewJobDialog
+              open={newJobOpen}
+              onOpenChange={setNewJobOpen}
+              onCreated={() => {
+                // Force-refresh the jobs list so the new pending row appears
+                // (the worker will then transition it through stages).
+                queryClient.invalidateQueries({ queryKey: ["jobs"] })
+              }}
+            />
+
+            <JobDetailsDialog
+              job={viewJob}
+              open={!!viewJob}
+              onOpenChange={(o) => { if (!o) setViewJob(null) }}
+            />
           </div>
         )
       }}
